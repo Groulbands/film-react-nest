@@ -1,31 +1,42 @@
-import { BadRequestException, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import mongoose, { Connection, Model, Schema } from 'mongoose';
 import { FilmDto, FilmEntity } from '../films/dto/films.dto';
 import { toFilmDto } from './film.mapper';
 import { FilmsRepository, SeatReservation } from './films.repository';
 
-const sessionSchema = new Schema({
-  id: { type: String, required: true },
-  daytime: { type: String, required: true },
-  hall: { type: Schema.Types.Mixed, required: true },
-  rows: { type: Number, required: true },
-  seats: { type: Number, required: true },
-  price: { type: Number, required: true },
-  taken: { type: [String], default: [] },
-}, { _id: false, id: false });
+const sessionSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    daytime: { type: String, required: true },
+    hall: { type: Schema.Types.Mixed, required: true },
+    rows: { type: Number, required: true },
+    seats: { type: Number, required: true },
+    price: { type: Number, required: true },
+    taken: { type: [String], default: [] },
+  },
+  { _id: false, id: false },
+);
 
-const filmSchema = new Schema({
-  id: { type: String, required: true, unique: true },
-  rating: Number,
-  director: String,
-  tags: [String],
-  title: String,
-  about: String,
-  description: String,
-  image: String,
-  cover: String,
-  schedule: { type: [sessionSchema], default: [] },
-}, { versionKey: false, id: false });
+const filmSchema = new Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    rating: Number,
+    director: String,
+    tags: [String],
+    title: String,
+    about: String,
+    description: String,
+    image: String,
+    cover: String,
+    schedule: { type: [sessionSchema], default: [] },
+  },
+  { versionKey: false, id: false },
+);
 
 interface ReservationGroup {
   film: string;
@@ -34,7 +45,10 @@ interface ReservationGroup {
 }
 
 @Injectable()
-export class MongoFilmsRepository extends FilmsRepository implements OnModuleInit, OnModuleDestroy {
+export class MongoFilmsRepository
+  extends FilmsRepository
+  implements OnModuleInit, OnModuleDestroy
+{
   private connection: Connection;
   private model: Model<FilmEntity>;
 
@@ -43,9 +57,11 @@ export class MongoFilmsRepository extends FilmsRepository implements OnModuleIni
   }
 
   async onModuleInit(): Promise<void> {
-    this.connection = await mongoose.createConnection(this.url, {
-      serverSelectionTimeoutMS: 10000,
-    }).asPromise();
+    this.connection = await mongoose
+      .createConnection(this.url, {
+        serverSelectionTimeoutMS: 10000,
+      })
+      .asPromise();
     this.model = this.connection.model<FilmEntity>('Film', filmSchema, 'films');
   }
 
@@ -54,7 +70,10 @@ export class MongoFilmsRepository extends FilmsRepository implements OnModuleIni
   }
 
   async findAll(): Promise<FilmDto[]> {
-    const films = await this.model.find({}, { _id: 0, schedule: 0 }).lean().exec();
+    const films = await this.model
+      .find({}, { _id: 0, schedule: 0 })
+      .lean()
+      .exec();
     return (films as unknown as FilmEntity[]).map(toFilmDto);
   }
 
@@ -68,7 +87,11 @@ export class MongoFilmsRepository extends FilmsRepository implements OnModuleIni
     for (const ticket of tickets) {
       const key = `${ticket.film}:${ticket.session}`;
       if (!groups.has(key)) {
-        groups.set(key, { film: ticket.film, session: ticket.session, seats: [] });
+        groups.set(key, {
+          film: ticket.film,
+          session: ticket.session,
+          seats: [],
+        });
       }
       groups.get(key).seats.push(`${ticket.row}:${ticket.seat}`);
     }
@@ -76,15 +99,17 @@ export class MongoFilmsRepository extends FilmsRepository implements OnModuleIni
     const reserved: ReservationGroup[] = [];
     try {
       for (const group of groups.values()) {
-        const result = await this.model.updateOne(
-          {
-            id: group.film,
-            schedule: {
-              $elemMatch: { id: group.session, taken: { $nin: group.seats } },
+        const result = await this.model
+          .updateOne(
+            {
+              id: group.film,
+              schedule: {
+                $elemMatch: { id: group.session, taken: { $nin: group.seats } },
+              },
             },
-          },
-          { $addToSet: { 'schedule.$.taken': { $each: group.seats } } },
-        ).exec();
+            { $addToSet: { 'schedule.$.taken': { $each: group.seats } } },
+          )
+          .exec();
         if (result.modifiedCount !== 1) {
           throw new BadRequestException('Одно или несколько мест уже занято');
         }
@@ -92,10 +117,12 @@ export class MongoFilmsRepository extends FilmsRepository implements OnModuleIni
       }
     } catch (error) {
       for (const group of reserved.reverse()) {
-        await this.model.updateOne(
-          { id: group.film, 'schedule.id': group.session },
-          { $pullAll: { 'schedule.$.taken': group.seats } },
-        ).exec();
+        await this.model
+          .updateOne(
+            { id: group.film, 'schedule.id': group.session },
+            { $pullAll: { 'schedule.$.taken': group.seats } },
+          )
+          .exec();
       }
       throw error;
     }

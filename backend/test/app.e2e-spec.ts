@@ -24,7 +24,9 @@ describe('Film! API (e2e, memory repository)', () => {
   });
 
   it('GET /api/afisha/films returns films', async () => {
-    const response = await request(app.getHttpServer()).get('/api/afisha/films').expect(200);
+    const response = await request(app.getHttpServer())
+      .get('/api/afisha/films')
+      .expect(200);
     expect(response.body.total).toBe(6);
     expect(response.body.items[0]).toHaveProperty('id');
     expect(response.body.items[0]).not.toHaveProperty('schedule');
@@ -32,28 +34,37 @@ describe('Film! API (e2e, memory repository)', () => {
 
   it('GET /api/afisha/films/:id/schedule returns sessions', async () => {
     const response = await request(app.getHttpServer())
-      .get(`/api/afisha/films/${filmId}/schedule`).expect(200);
+      .get(`/api/afisha/films/${filmId}/schedule`)
+      .expect(200);
     expect(response.body.total).toBeGreaterThan(0);
     expect(response.body.items[0]).toHaveProperty('taken');
   });
 
   it('POST /api/afisha/order updates taken and rejects repeated purchase', async () => {
     const body = {
-      email: 'test@example.com', phone: '+79999999999',
+      email: 'test@example.com',
+      phone: '+79999999999',
       tickets: [{ film: filmId, session: sessionId, row: 2, seat: 4 }],
     };
     const response = await request(app.getHttpServer())
-      .post('/api/afisha/order').send(body).expect(200);
+      .post('/api/afisha/order')
+      .send(body)
+      .expect(200);
     expect(response.body.total).toBe(1);
     expect(response.body.items[0].id).toBeTruthy();
     const schedule = await request(app.getHttpServer())
-      .get(`/api/afisha/films/${filmId}/schedule`).expect(200);
+      .get(`/api/afisha/films/${filmId}/schedule`)
+      .expect(200);
     expect(schedule.body.items[0].taken).toContain('2:4');
     await request(app.getHttpServer())
-      .post('/api/afisha/order').send(body).expect(400);
+      .post('/api/afisha/order')
+      .send(body)
+      .expect(400);
   });
 
   it('serves poster files', async () => {
-    await request(app.getHttpServer()).get('/content/afisha/bg1s.jpg').expect(200);
+    await request(app.getHttpServer())
+      .get('/content/afisha/bg1s.jpg')
+      .expect(200);
   });
 });

@@ -28,7 +28,10 @@ export const configProvider = {
       port,
       database: {
         driver,
-        url: config.get<string>('DATABASE_URL', 'mongodb://127.0.0.1:27017/prac'),
+        url: config.get<string>(
+          'DATABASE_URL',
+          'mongodb://127.0.0.1:27017/prac',
+        ),
       },
     };
   },

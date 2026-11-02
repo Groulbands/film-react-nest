@@ -10,10 +10,15 @@ export class MemoryFilmsRepository extends FilmsRepository {
 
   constructor(initialFilms?: FilmEntity[]) {
     super();
-    this.films = structuredClone(initialFilms ?? JSON.parse(readFileSync(
-      join(process.cwd(), 'test', 'mongodb_initial_stub.json'),
-      'utf8',
-    )) as FilmEntity[]);
+    this.films = structuredClone(
+      initialFilms ??
+        (JSON.parse(
+          readFileSync(
+            join(process.cwd(), 'test', 'mongodb_initial_stub.json'),
+            'utf8',
+          ),
+        ) as FilmEntity[]),
+    );
   }
 
   async findAll(): Promise<FilmDto[]> {
@@ -31,13 +36,20 @@ export class MemoryFilmsRepository extends FilmsRepository {
       const key = `${ticket.film}:${ticket.session}:${ticket.row}:${ticket.seat}`;
       const film = this.films.find((item) => item.id === ticket.film);
       const session = film?.schedule.find((item) => item.id === ticket.session);
-      if (!session || seen.has(key) || (session.taken ?? []).includes(`${ticket.row}:${ticket.seat}`)) {
-        throw new BadRequestException('Указанное место уже занято или сеанс не найден');
+      if (
+        !session ||
+        seen.has(key) ||
+        (session.taken ?? []).includes(`${ticket.row}:${ticket.seat}`)
+      ) {
+        throw new BadRequestException(
+          'Указанное место уже занято или сеанс не найден',
+        );
       }
       seen.add(key);
     }
     for (const ticket of tickets) {
-      const session = this.films.find((item) => item.id === ticket.film)
+      const session = this.films
+        .find((item) => item.id === ticket.film)
         .schedule.find((item) => item.id === ticket.session);
       session.taken ??= [];
       session.taken.push(`${ticket.row}:${ticket.seat}`);
