@@ -1,8 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 
 export interface AppConfigDatabase {
-  driver: 'memory' | 'mongodb';
+  driver: 'postgres';
   url: string;
+  username: string;
+  password: string;
 }
 
 export interface AppConfig {
@@ -14,9 +16,9 @@ export const configProvider = {
   provide: 'CONFIG',
   inject: [ConfigService],
   useFactory: (config: ConfigService): AppConfig => {
-    const driver = config.get<string>('DATABASE_DRIVER', 'mongodb');
-    if (driver !== 'memory' && driver !== 'mongodb') {
-      throw new Error('DATABASE_DRIVER должен быть mongodb или memory');
+    const driver = config.get<string>('DATABASE_DRIVER', 'postgres');
+    if (driver !== 'postgres') {
+      throw new Error('DATABASE_DRIVER должен быть postgres');
     }
 
     const port = Number(config.get<string>('PORT', '3000'));
@@ -24,15 +26,13 @@ export const configProvider = {
       throw new Error('PORT должен быть корректным номером порта');
     }
 
-    return {
-      port,
-      database: {
-        driver,
-        url: config.get<string>(
-          'DATABASE_URL',
-          'mongodb://127.0.0.1:27017/prac',
-        ),
-      },
-    };
+    const url = config.get<string>('DATABASE_URL', 'postgres://localhost:5432/films');
+    const username = config.get<string>('DATABASE_USERNAME');
+    const password = config.get<string>('DATABASE_PASSWORD');
+    if (!username || !password) {
+      throw new Error('Необходимо задать DATABASE_USERNAME и DATABASE_PASSWORD в .env');
+    }
+
+    return { port, database: { driver, url, username, password } };
   },
 };
