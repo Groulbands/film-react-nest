@@ -1,11 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import 'dotenv/config'
+import { AppConfig } from './app.config.provider';
+import { ApiErrorFilter } from './common/api-error.filter';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix("api/afisha");
+  const { port } = app.get<AppConfig>('CONFIG');
+  app.setGlobalPrefix('api/afisha');
   app.enableCors();
-  await app.listen(3000);
+  app.useGlobalFilters(new ApiErrorFilter());
+  await app.listen(port);
+  console.log(`Film API запущен: http://localhost:${port}/api/afisha/films`);
 }
-bootstrap();
+
+void bootstrap();
