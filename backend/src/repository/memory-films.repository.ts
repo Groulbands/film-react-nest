@@ -14,7 +14,7 @@ export class MemoryFilmsRepository extends FilmsRepository {
       initialFilms ??
         (JSON.parse(
           readFileSync(
-            join(process.cwd(), 'test', 'mongodb_initial_stub.json'),
+            join(process.cwd(), 'test', 'films.fixture.json'),
             'utf8',
           ),
         ) as FilmEntity[]),
