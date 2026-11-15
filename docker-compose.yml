@@ -13,6 +13,8 @@ services:
   backend:
     build:
       context: ./backend
+    ports:
+      - "127.0.0.1:3000:3000"
     image: ghcr.io/${GHCR_OWNER:-film-local}/film-backend:latest
     environment:
       NODE_ENV: production
