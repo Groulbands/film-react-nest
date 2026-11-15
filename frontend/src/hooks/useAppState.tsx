@@ -1,4 +1,4 @@
-import {ReactNode, Reducer, useEffect, useReducer, useRef} from "react";
+import {ReactNode, Reducer, useEffect, useReducer, useRef, useState} from "react";
 import {Actions, appReducer, AppState, initialState, Modals} from "../utils/state.ts";
 import {Contacts, FilmAPI, IFilmAPI, Movie, Session} from "../utils/api.ts";
 import {API_URL, CDN_URL} from "../utils/constants.ts";
@@ -12,8 +12,19 @@ const flow : Record<Modals, { next: Modals | null, prev: Modals | null }> = {
     'success': { next: null, prev: 'contacts' }
 };
 
+const getOrderErrorMessage = (error: unknown): string => {
+    if (typeof error === 'string' && error.trim()) return error;
+    if (error instanceof TypeError) {
+        return 'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.';
+    }
+    if (error instanceof Error && error.message) return error.message;
+    return 'Не удалось оформить заказ. Попробуйте ещё раз.';
+};
+
 export function useAppState() {
     const [state, dispatch] = useReducer<Reducer<AppState, Actions>>(appReducer, initialState);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const orderInFlight = useRef(false);
 
     const api = useRef<IFilmAPI>(new FilmAPI(
         CDN_URL,
@@ -38,15 +49,27 @@ export function useAppState() {
     const closeModal = () => dispatch({ type: 'closeModal' });
     const setContacts = (contacts: Contacts) => dispatch({ type: 'setContacts', payload: contacts });
 
-    const orderTickets = () => {
-        api.current.orderTickets({
-            email: state.contacts.email,
-            phone: state.contacts.phone,
-            tickets: state.basket
-        }).then(() => {
+    const orderTickets = async () => {
+        if (orderInFlight.current) return;
+
+        orderInFlight.current = true;
+        setIsSubmitting(true);
+        dispatch({ type: 'clearRequestError' });
+
+        try {
+            await api.current.orderTickets({
+                email: state.contacts.email,
+                phone: state.contacts.phone,
+                tickets: state.basket
+            });
             dispatch({ type: 'clearBasket' });
             dispatch({ type: 'openModal', payload: 'success' });
-        });
+        } catch (error: unknown) {
+            dispatch({ type: 'setRequestError', payload: getOrderErrorMessage(error) });
+        } finally {
+            orderInFlight.current = false;
+            setIsSubmitting(false);
+        }
     };
 
     const go = (direction: 'next' | 'prev') => () => {
@@ -77,7 +100,7 @@ export function useAppState() {
             'contacts': <Button
                 label={"Оплатить"}
                 onClick={orderTickets}
-                disabled={!state.contacts.email || !state.contacts.phone}
+                disabled={isSubmitting || !state.contacts.email || !state.contacts.phone}
             />,
             'success': null
         };

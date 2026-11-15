@@ -1,2 +1,9 @@
-node_modules
-.idea
+**/node_modules/
+**/dist/
+**/coverage/
+**/.env
+**/.env.local
+**/.env.*.local
+**/*.log
+.idea/
+.vscode/

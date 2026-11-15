@@ -1,0 +1,89 @@
+name: film
+services:
+  frontend-build:
+    build:
+      context: ./frontend
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-frontend:latest
+    volumes:
+      - frontend_dist:/frontend-dist
+    networks:
+      - film_network
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-backend:latest
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      LOGGER_FORMAT: ${LOGGER_FORMAT:-json}
+      DATABASE_DRIVER: postgres
+      DATABASE_URL: postgres://postgres:5432/${DATABASE_NAME:-films}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-film_user}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      frontend-build:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    volumes:
+      - frontend_dist:/usr/share/nginx/html:ro
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-films}
+      POSTGRES_USER: ${DATABASE_USERNAME:-film_user}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Set PGADMIN_DEFAULT_EMAIL in root .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Set PGADMIN_DEFAULT_PASSWORD in root .env}
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - film_network
+    restart: unless-stopped
+
+networks:
+  film_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  frontend_dist:
