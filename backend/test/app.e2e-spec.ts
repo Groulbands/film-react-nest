@@ -1,7 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { AppModule } from './../src/app.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'node:path';
+import { FilmsRepository } from '../src/repository/films.repository';
+import { MemoryFilmsRepository } from '../src/repository/memory-films.repository';
+import { FilmsController } from '../src/films/films.controller';
+import { OrderController } from '../src/order/order.controller';
+import { FilmsService } from '../src/films/films.service';
+import { OrderService } from '../src/order/order.service';
 
 describe('Film! API (e2e, memory repository)', () => {
   let app: INestApplication;
@@ -9,9 +16,18 @@ describe('Film! API (e2e, memory repository)', () => {
   const sessionId = 'f2e429b0-685d-41f8-a8cd-1d8cb63b99ce';
 
   beforeAll(async () => {
-    process.env.DATABASE_DRIVER = 'memory';
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      // Test the unchanged HTTP API without touching any real PostgreSQL data.
+      imports: [ServeStaticModule.forRoot({
+        rootPath: join(process.cwd(), 'public', 'content', 'afisha'),
+        serveRoot: '/content/afisha',
+      })],
+      controllers: [FilmsController, OrderController],
+      providers: [
+        FilmsService,
+        OrderService,
+        { provide: FilmsRepository, useFactory: () => new MemoryFilmsRepository() },
+      ],
     }).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/afisha');
@@ -20,7 +36,6 @@ describe('Film! API (e2e, memory repository)', () => {
 
   afterAll(async () => {
     if (app) await app.close();
-    delete process.env.DATABASE_DRIVER;
   });
 
   it('GET /api/afisha/films returns films', async () => {
