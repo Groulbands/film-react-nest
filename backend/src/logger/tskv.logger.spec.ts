@@ -7,7 +7,9 @@ describe('TskvLogger', () => {
 
   it('creates flat tab-separated key-value fields', () => {
     const line = logger.formatMessage('log', 'hello', 'FilmsController');
-    expect(line).toMatch(/^timestamp=[^\t]+\tlevel=log\tmessage=hello\toptionalParams=/);
+    expect(line).toMatch(
+      /^timestamp=[^\t]+\tlevel=log\tmessage=hello\toptionalParams=/,
+    );
     expect(line).not.toContain('\n');
   });
 
@@ -18,12 +20,18 @@ describe('TskvLogger', () => {
   });
 
   it('converts structured values into string fields', () => {
-    expect(logger.formatMessage('debug', { row: 2 })).toContain('message={"row":2}');
+    expect(logger.formatMessage('debug', { row: 2 })).toContain(
+      'message={"row":2}',
+    );
   });
 
   it.each([
-    ['log', 'log'], ['error', 'error'], ['warn', 'warn'],
-    ['debug', 'debug'], ['verbose', 'debug'], ['fatal', 'error'],
+    ['log', 'log'],
+    ['error', 'error'],
+    ['warn', 'warn'],
+    ['debug', 'debug'],
+    ['verbose', 'debug'],
+    ['fatal', 'error'],
   ] as const)('writes %s to console.%s', (method, target) => {
     const spy = jest.spyOn(console, target).mockImplementation(() => undefined);
     logger[method]('test');

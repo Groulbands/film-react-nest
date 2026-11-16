@@ -29,7 +29,11 @@ export class TypeormFilmsRepository extends FilmsRepository {
   }
 
   async findById(id: string): Promise<FilmEntity | null> {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id,
+      )
+    ) {
       return null;
     }
     const film = await this.films.findOne({
@@ -54,7 +58,11 @@ export class TypeormFilmsRepository extends FilmsRepository {
     for (const ticket of tickets) {
       const key = `${ticket.film}:${ticket.session}`;
       if (!groups.has(key)) {
-        groups.set(key, { film: ticket.film, session: ticket.session, seats: [] });
+        groups.set(key, {
+          film: ticket.film,
+          session: ticket.session,
+          seats: [],
+        });
       }
       groups.get(key).seats.push({
         row: ticket.row,

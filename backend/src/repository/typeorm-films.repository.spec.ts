@@ -18,8 +18,17 @@ const makeFilm = () => ({
   description: 'Description',
   image: '/bg1s.jpg',
   cover: '/bg1c.jpg',
-  schedule: [{ id: sessionId, daytime: '2024-06-28T10:00:53+03:00',
-    hall: 0, rows: 5, seats: 10, price: 350, taken: [] }],
+  schedule: [
+    {
+      id: sessionId,
+      daytime: '2024-06-28T10:00:53+03:00',
+      hall: 0,
+      rows: 5,
+      seats: 10,
+      price: 350,
+      taken: [],
+    },
+  ],
 });
 
 const makeSchedule = (id: string, taken: string[] = []): Schedule => ({
@@ -38,34 +47,38 @@ function mockDatabase(initial: Schedule[]) {
   const rows = new Map(initial.map((s) => [s.id, structuredClone(s)]));
   const locks = jest.fn();
 
-  const transaction = jest.fn(async (callback: (manager: unknown) => Promise<void>) => {
-    const pending = new Map([...rows].map(([id, s]) => [id, structuredClone(s)]));
-    const repo = {
-      createQueryBuilder: () => {
-        let requested: string;
-        let film: string;
-        const query = {
-          where: (_expr: string, args: { sessionId: string }) => {
-            requested = args.sessionId;
-            return query;
-          },
-          andWhere: (_expr: string, args: { filmId: string }) => {
-            film = args.filmId;
-            return query;
-          },
-          setLock: locks.mockImplementation(() => query),
-          getOne: async () => {
-            const s = pending.get(requested);
-            return s && s.filmId === film ? structuredClone(s) : null;
-          },
-        };
-        return query;
-      },
-      save: async (s: Schedule) => pending.set(s.id, structuredClone(s)),
-    };
-    await callback({ getRepository: () => repo });
-    for (const [id, s] of pending) rows.set(id, s);
-  });
+  const transaction = jest.fn(
+    async (callback: (manager: unknown) => Promise<void>) => {
+      const pending = new Map(
+        [...rows].map(([id, s]) => [id, structuredClone(s)]),
+      );
+      const repo = {
+        createQueryBuilder: () => {
+          let requested: string;
+          let film: string;
+          const query = {
+            where: (_expr: string, args: { sessionId: string }) => {
+              requested = args.sessionId;
+              return query;
+            },
+            andWhere: (_expr: string, args: { filmId: string }) => {
+              film = args.filmId;
+              return query;
+            },
+            setLock: locks.mockImplementation(() => query),
+            getOne: async () => {
+              const s = pending.get(requested);
+              return s && s.filmId === film ? structuredClone(s) : null;
+            },
+          };
+          return query;
+        },
+        save: async (s: Schedule) => pending.set(s.id, structuredClone(s)),
+      };
+      await callback({ getRepository: () => repo });
+      for (const [id, s] of pending) rows.set(id, s);
+    },
+  );
 
   const filmRepo = {
     find: jest.fn().mockResolvedValue([makeFilm()]),
@@ -98,33 +111,44 @@ describe('TypeormFilmsRepository (mocked DB)', () => {
   });
 
   it('rejects an already occupied seat without changing the database', async () => {
-    const { rows, repository } = mockDatabase([makeSchedule(sessionId, ['1:2'])]);
-    await expect(repository.reserveSeats([
-      { film: filmId, session: sessionId, row: 1, seat: 2 },
-    ])).rejects.toBeInstanceOf(BadRequestException);
+    const { rows, repository } = mockDatabase([
+      makeSchedule(sessionId, ['1:2']),
+    ]);
+    await expect(
+      repository.reserveSeats([
+        { film: filmId, session: sessionId, row: 1, seat: 2 },
+      ]),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(rows.get(sessionId).taken).toEqual(['1:2']);
   });
 
   it('rolls back all sessions when one ticket cannot be booked', async () => {
     const { rows, repository } = mockDatabase([
-      makeSchedule(sessionId), makeSchedule(otherSessionId, ['1:1']),
+      makeSchedule(sessionId),
+      makeSchedule(otherSessionId, ['1:1']),
     ]);
-    await expect(repository.reserveSeats([
-      { film: filmId, session: sessionId, row: 1, seat: 2 },
-      { film: filmId, session: otherSessionId, row: 1, seat: 1 },
-    ])).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      repository.reserveSeats([
+        { film: filmId, session: sessionId, row: 1, seat: 2 },
+        { film: filmId, session: otherSessionId, row: 1, seat: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(rows.get(sessionId).taken).toEqual([]);
     expect(rows.get(otherSessionId).taken).toEqual(['1:1']);
   });
 
   it('rejects duplicates and out-of-range coordinates', async () => {
     const { repository } = mockDatabase([makeSchedule(sessionId)]);
-    await expect(repository.reserveSeats([
-      { film: filmId, session: sessionId, row: 6, seat: 1 },
-    ])).rejects.toBeInstanceOf(BadRequestException);
-    await expect(repository.reserveSeats([
-      { film: filmId, session: sessionId, row: 1, seat: 1 },
-      { film: filmId, session: sessionId, row: 1, seat: 1 },
-    ])).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      repository.reserveSeats([
+        { film: filmId, session: sessionId, row: 6, seat: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      repository.reserveSeats([
+        { film: filmId, session: sessionId, row: 1, seat: 1 },
+        { film: filmId, session: sessionId, row: 1, seat: 1 },
+      ]),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

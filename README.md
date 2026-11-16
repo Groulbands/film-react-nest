@@ -1,4 +1,21 @@
-# FILM!
+
+# Film! — онлайн-кинотеатр
+
+## Опубликованное приложение
+
+**Ссылка:** http://212.193.48.48
+
+Приложение развёрнуто на VPS SimpleCloud с использованием Docker Compose.
+
+### Технологии
+
+- Frontend: React, TypeScript, Vite
+- Backend: Nest.js, TypeScript
+- База данных: PostgreSQL, TypeORM
+- Веб-сервер: Nginx
+- Контейнеризация: Docker, Docker Compose
+- CI/CD: GitHub Actions, GitHub Container Registry
+
 
 ## Установка
 

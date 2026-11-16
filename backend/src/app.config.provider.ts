@@ -26,11 +26,16 @@ export const configProvider = {
       throw new Error('PORT должен быть корректным номером порта');
     }
 
-    const url = config.get<string>('DATABASE_URL', 'postgres://localhost:5432/films');
+    const url = config.get<string>(
+      'DATABASE_URL',
+      'postgres://localhost:5432/films',
+    );
     const username = config.get<string>('DATABASE_USERNAME');
     const password = config.get<string>('DATABASE_PASSWORD');
     if (!username || !password) {
-      throw new Error('Необходимо задать DATABASE_USERNAME и DATABASE_PASSWORD в .env');
+      throw new Error(
+        'Необходимо задать DATABASE_USERNAME и DATABASE_PASSWORD в .env',
+      );
     }
 
     return { port, database: { driver, url, username, password } };

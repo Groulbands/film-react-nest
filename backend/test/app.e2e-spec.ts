@@ -18,15 +18,20 @@ describe('Film! API (e2e, memory repository)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       // Test the unchanged HTTP API without touching any real PostgreSQL data.
-      imports: [ServeStaticModule.forRoot({
-        rootPath: join(process.cwd(), 'public', 'content', 'afisha'),
-        serveRoot: '/content/afisha',
-      })],
+      imports: [
+        ServeStaticModule.forRoot({
+          rootPath: join(process.cwd(), 'public', 'content', 'afisha'),
+          serveRoot: '/content/afisha',
+        }),
+      ],
       controllers: [FilmsController, OrderController],
       providers: [
         FilmsService,
         OrderService,
-        { provide: FilmsRepository, useFactory: () => new MemoryFilmsRepository() },
+        {
+          provide: FilmsRepository,
+          useFactory: () => new MemoryFilmsRepository(),
+        },
       ],
     }).compile();
     app = moduleFixture.createNestApplication();

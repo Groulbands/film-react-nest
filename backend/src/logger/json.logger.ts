@@ -3,7 +3,11 @@ import { safeStringify } from './log-format';
 
 @Injectable()
 export class JsonLogger implements LoggerService {
-  formatMessage(level: string, message: unknown, ...optionalParams: unknown[]): string {
+  formatMessage(
+    level: string,
+    message: unknown,
+    ...optionalParams: unknown[]
+  ): string {
     return safeStringify({
       timestamp: new Date().toISOString(),
       level,

@@ -2,7 +2,7 @@ name: Test, build and publish images
 
 on:
   push:
-    branches: [review-3]
+    branches: [main, review-3]
   workflow_dispatch:
 
 permissions:

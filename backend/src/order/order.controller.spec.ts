@@ -18,12 +18,16 @@ describe('OrderController', () => {
   });
 
   const payload: CreateOrderDto = {
-    email: 'test@example.com', phone: '+79999999999',
+    email: 'test@example.com',
+    phone: '+79999999999',
     tickets: [{ film: 'film-1', session: 'session-1', row: 1, seat: 2 }],
   };
 
   it('passes order DTO to service and returns response unchanged', async () => {
-    const response = { total: 1, items: [{ id: 'ticket-1', ...payload.tickets[0] }] };
+    const response = {
+      total: 1,
+      items: [{ id: 'ticket-1', ...payload.tickets[0] }],
+    };
     orderService.createOrder.mockResolvedValue(response);
     await expect(controller.create(payload)).resolves.toBe(response);
     expect(orderService.createOrder).toHaveBeenCalledWith(payload);
@@ -31,7 +35,11 @@ describe('OrderController', () => {
   });
 
   it('propagates reservation errors', async () => {
-    orderService.createOrder.mockRejectedValue(new BadRequestException('Место занято'));
-    await expect(controller.create(payload)).rejects.toBeInstanceOf(BadRequestException);
+    orderService.createOrder.mockRejectedValue(
+      new BadRequestException('Место занято'),
+    );
+    await expect(controller.create(payload)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 });

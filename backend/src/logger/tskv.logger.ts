@@ -12,14 +12,21 @@ export function escapeTskv(value: unknown): string {
 
 @Injectable()
 export class TskvLogger implements LoggerService {
-  formatMessage(level: string, message: unknown, ...optionalParams: unknown[]): string {
+  formatMessage(
+    level: string,
+    message: unknown,
+    ...optionalParams: unknown[]
+  ): string {
     const fields: Array<[string, unknown]> = [
       ['timestamp', new Date().toISOString()],
       ['level', level],
       ['message', message],
     ];
-    if (optionalParams.length > 0) fields.push(['optionalParams', optionalParams]);
-    return fields.map(([key, value]) => `${key}=${escapeTskv(value)}`).join('\t');
+    if (optionalParams.length > 0)
+      fields.push(['optionalParams', optionalParams]);
+    return fields
+      .map(([key, value]) => `${key}=${escapeTskv(value)}`)
+      .join('\t');
   }
 
   log(message: unknown, ...optionalParams: unknown[]): void {

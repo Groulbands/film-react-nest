@@ -31,7 +31,11 @@ describe('FilmsController', () => {
   });
 
   it('propagates service exceptions', async () => {
-    filmsService.getSchedule.mockRejectedValue(new NotFoundException('Фильм не найден'));
-    await expect(controller.getSchedule('missing')).rejects.toBeInstanceOf(NotFoundException);
+    filmsService.getSchedule.mockRejectedValue(
+      new NotFoundException('Фильм не найден'),
+    );
+    await expect(controller.getSchedule('missing')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });
