@@ -1,0 +1,51 @@
+name: film
+services:
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER in root .env}/film-frontend:latest
+    restart: unless-stopped
+    networks: [film_network]
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER in root .env}/film-backend:latest
+    env_file:
+      - .env
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [film_network]
+
+  nginx:
+    image: ghcr.io/${GHCR_OWNER:?Set GHCR_OWNER in root .env}/film-nginx:latest
+    ports: ["80:80"]
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    networks: [film_network]
+
+  database:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+    networks:
+      film_network:
+        aliases:
+          - postgres
+
+networks:
+  film_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

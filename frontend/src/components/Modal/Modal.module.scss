@@ -42,10 +42,9 @@
   }
 
   .message {
-    white-space: nowrap;
+    white-space: normal;
     max-width: 60%;
-    text-overflow: ellipsis;
-    overflow: hidden;
+    overflow-wrap: anywhere;
   }
 }
 

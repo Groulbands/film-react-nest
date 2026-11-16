@@ -1,0 +1,82 @@
+name: film
+services:
+  frontend:
+    build:
+      context: ./frontend
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-frontend:latest
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-backend:latest
+    env_file:
+      - .env
+    # For local debugging only. The production compose exposes no backend port.
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+    image: ghcr.io/${GHCR_OWNER:-film-local}/film-nginx:latest
+    ports:
+      - "80:80"
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - film_network
+    restart: unless-stopped
+
+  database:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      film_network:
+        aliases:
+          - postgres # Backwards-compatible hostname for existing installations.
+    restart: unless-stopped
+
+  # Local-only tool: start explicitly with --profile tools, bind to loopback.
+  pgadmin:
+    profiles: [tools]
+    image: dpage/pgadmin4:9
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - film_network
+    restart: unless-stopped
+
+networks:
+  film_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:

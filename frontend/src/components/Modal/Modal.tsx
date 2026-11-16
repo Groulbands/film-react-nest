@@ -42,7 +42,7 @@ export function Modal({
                 {actions}
                 <span className={clsx(styles.message, {
                     [styles.error]: isError
-                })}>{message}</span>
+                })} role={isError ? "alert" : "status"} aria-live={isError ? "assertive" : "polite"}>{message}</span>
             </div>
         </div>
     </div>;
